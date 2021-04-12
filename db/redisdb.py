@@ -32,6 +32,9 @@ class RedisDB:
         else:
             return {k.decode("utf-8"): v.decode("utf-8") for k, v in self.r.hgetall(key).items()}
 
+    def get_key(self, key):
+        return self.r.get(key).decode("utf-8")
+
     def flush_db(self):
         self.r.flushdb()
 

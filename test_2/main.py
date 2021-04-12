@@ -1,5 +1,6 @@
 import random
 
+from colors import bcolors
 from redlock import Redlock
 
 from db.redisdb import RedisDB
@@ -14,40 +15,72 @@ redis = RedisDB()
 # Create Redlock instance
 dlm = Redlock([{"host": "localhost", "port": 6379, "db": 0}, ])
 
-print("## EXECUTING TEST 2 ##")
-print(" One client, Several locks, One resource ")
+print(f"{bcolors.OKBLUE}## EXECUTING TEST 2 ##{bcolors.ENDC}")
+print(f"{bcolors.OKBLUE} One client, Several locks, One resource {bcolors.ENDC}")
 
 # Get the resource previously to its modification
+print(f"{bcolors.OKCYAN}Retrieving resource in order to compare it after the update...{bcolors.ENDC}")
 prev_resource = redis.get(RESOURCE_NAME)
 
 # Get a lock on the plane number 1 around 10 seconds
+print(f"{bcolors.OKGREEN}Client 1:{bcolors.ENDC} "
+      f"{bcolors.OKCYAN}Requesting first lock on resource '" + RESOURCE_NAME + f"'...{bcolors.ENDC}")
 plane_1_lock_1 = dlm.lock(RESOURCE_ID, 10000)
 
 # Get another lock on the plane number 1 around 5 seconds
+print(f"{bcolors.OKGREEN}Client 1:{bcolors.ENDC} "
+      f"{bcolors.OKCYAN}Requesting second lock on resource '" + RESOURCE_NAME + f"'...{bcolors.ENDC}")
 plane_1_lock_2 = dlm.lock(RESOURCE_ID, 5000)
 
 # Check if the lock has been acquired
 if plane_1_lock_1 and not plane_1_lock_2:
-    print("Lock 1 on resource '" + RESOURCE_NAME + "' acquired successfully, the lock 2 doesn't acquire it")
+    print(f"{bcolors.OKGREEN}Client 1 - Lock 1:{bcolors.ENDC} "
+          f"{bcolors.OKCYAN}Lock on resource '" + RESOURCE_NAME + f"' acquired successfully. {bcolors.ENDC}")
+    print(f"{bcolors.OKGREEN}Client 1 - Lock 2:{bcolors.ENDC} "
+          f"{bcolors.FAIL}Lock on resource '" + RESOURCE_NAME + f"' not acquired. {bcolors.ENDC}")
+
+    lock_1_key = plane_1_lock_1.key.decode("utf-8")
+    print(f"{bcolors.OKGREEN}Client 1 - Lock 1:{bcolors.ENDC} "
+          f"{bcolors.OKCYAN}Lock key: {bcolors.BOLD}" + lock_1_key + f"{bcolors.ENDC}")
+
+    resource_key = redis.get_key(RESOURCE_ID)
+    print(f"{bcolors.WARNING}Redis:{bcolors.ENDC} "
+          f"{bcolors.WARNING}Resource key: {resource_key} {bcolors.ENDC}")
 
     # Introduce the lock in the resource
+    print(f"{bcolors.OKGREEN}Client 1 - Lock 1:{bcolors.ENDC} "
+          f"{bcolors.OKCYAN}Updating resource '" + RESOURCE_NAME + f"' {bcolors.ENDC}")
     redis.update(name=RESOURCE_NAME, key="updated_by", value="lock_1")
     redis.update(name=RESOURCE_NAME, key="random", value=random.random())
 
 elif not plane_1_lock_1 and plane_1_lock_2:
-    print("Lock 2 on resource'" + RESOURCE_NAME + "' acquired successfully, the lock 1 doesn't acquire it")
+    print(f"{bcolors.OKGREEN}Client 1 - Lock 1:{bcolors.ENDC} "
+          f"{bcolors.FAIL}Lock on resource '" + RESOURCE_NAME + f"' not acquired. {bcolors.ENDC}")
+    print(f"{bcolors.OKGREEN}Client 1 - Lock 2:{bcolors.ENDC} "
+          f"{bcolors.OKCYAN}Lock on resource '" + RESOURCE_NAME + f"' acquired successfully. {bcolors.ENDC}")
+
+    lock_2_key = plane_1_lock_2.key.decode("utf-8")
+    print(f"{bcolors.OKGREEN}Client 1 - Lock 2:{bcolors.ENDC} "
+          f"{bcolors.OKCYAN}Lock key: {bcolors.BOLD}" + lock_2_key + f"{bcolors.ENDC}")
+
+    resource_key = redis.get_key(RESOURCE_ID)
+    print(f"{bcolors.WARNING}Redis:{bcolors.ENDC} "
+          f"{bcolors.WARNING}Resource key: {resource_key} {bcolors.ENDC}")
 
     # Introduce the lock in the resource
+    print(f"{bcolors.OKGREEN}Client 1 - Lock 2:{bcolors.ENDC} "
+          f"{bcolors.OKCYAN}Updating resource '" + RESOURCE_NAME + f"' {bcolors.ENDC}")
     redis.update(name=RESOURCE_NAME, key="updated_by", value="lock_2")
     redis.update(name=RESOURCE_NAME, key="random", value=random.random())
 
 else:
-    print("Error acquiring the lock on resource '" + RESOURCE_NAME + "'")
+    print(f"{bcolors.FAIL}Client 1: Error acquiring the lock on resource '" + RESOURCE_NAME + f"' {bcolors.ENDC}")
 
 # Save data changes on db
 redis.bgsave()
 
 # Get the updated resource
+print(f"{bcolors.OKCYAN}Retrieving updated resource{bcolors.ENDC}")
 updated_resource = redis.get(RESOURCE_NAME)
 
 # Show the resources
@@ -55,7 +88,6 @@ print("Previous resource:", prev_resource)
 print("Updated resource:", updated_resource)
 
 if prev_resource == updated_resource:
-    print("Error updating the resource '" + RESOURCE_NAME + "'")
+    print(f"{bcolors.FAIL}Error updating the resource '" + RESOURCE_NAME + f"' {bcolors.ENDC}")
 else:
-    print("Resource '" + RESOURCE_NAME + "' updated successfully")
-
+    print(f"{bcolors.OKGREEN}Resource '" + RESOURCE_NAME + f"' updated successfully{bcolors.ENDC}")
